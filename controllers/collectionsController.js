@@ -1,12 +1,16 @@
 import Collection from "../model/Collection.js";
 import cloudinary from "../config/cloudinary.js";
 import { getPublicIdFromUrl } from "../utils/cloudinary.js";
+import streamifier from 'streamifier';
 
 // ------------------------------------------------
 // CREATE COLLECTION
 // ------------------------------------------------
 export const createCollection = async (req, res) => {
   try {
+    console.log("BODY:", req.body);
+    console.log("FILES:", req.files);
+
     const { title } = req.body;
 
     if (!title) return res.status(400).json({ message: "Title is required." });
@@ -16,8 +20,22 @@ export const createCollection = async (req, res) => {
     const uploadedImages = [];
 
     for (let file of req.files) {
-      const upload = await cloudinary.uploader.upload(file.path, { folder: "collections" });
-      uploadedImages.push(upload.secure_url);
+      const result = await new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          { folder: "collections" },
+          (error, result) => {
+            if (result) resolve(result);
+            else reject(error);
+          }
+        );
+        streamifier.createReadStream(file.buffer).pipe(stream);
+      });
+
+      // ✅ Push an object, not just URL
+      uploadedImages.push({
+        url: result.secure_url,
+        public_id: result.public_id,
+      });
     }
 
     const collection = await Collection.create({

@@ -6,7 +6,7 @@ import {
   updateCollection,
   deleteCollection,
   getAllCollections,
-  getSingleCollection, // Corrected typo here
+  getSingleCollection,
 } from "../controllers/collectionsController.js";
 
 const CollectionRouter = express.Router();
