@@ -6,9 +6,7 @@ import './config/cloudinary.js';
 import UserRouter from './routes/UserRoute.js';
 import BlogRouter from './routes/BlogRoute.js';
 import CollectionRouter from './routes/CollectionRoute.js';
-
-// import propertyrouter from './routes/propertyRoute.js';
-// import cron from 'node-cron';
+import { sendContactMail } from './config/smtp.js'; // ✅ ADD
 
 const app = express();
 const port = process.env.PORT;
@@ -20,14 +18,31 @@ app.use(cors({
   methods: ['GET','POST','PUT','DELETE','PATCH','OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
-app.use(express.json()); 
+
+app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use('/api/user',UserRouter);
-app.use('/api/blog',BlogRouter );
-app.use('/api/collection',CollectionRouter)
+// Existing routes
+app.use('/api/user', UserRouter);
+app.use('/api/blog', BlogRouter);
+app.use('/api/collection', CollectionRouter);
 
+// ✅ NEW CONTACT ROUTE
+app.post('/api/contact', async (req, res) => {
+  const { name, email, message } = req.body;
 
+  if (!name || !email || !message) {
+    return res.status(400).json({ message: 'All fields are required' });
+  }
+
+  try {
+    await sendContactMail({ name, email, message });
+    res.json({ message: 'Email sent successfully' });
+  } catch (error) {
+    console.error('SMTP ERROR:', error);
+    res.status(500).json({ message: 'Failed to send email' });
+  }
+});
 
 app.get('/', (req, res) => {
   res.send('API RUNNING');
@@ -36,5 +51,3 @@ app.get('/', (req, res) => {
 app.listen(port, () => {
   console.log(`Server listening at http://localhost:${port}`);
 });
-
-
